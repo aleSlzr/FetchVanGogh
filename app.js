@@ -2,12 +2,20 @@ const fs = require("fs");
 const axios = require("axios");
 const { exec } = require("node:child_process");
 
-const EMPTY_SPACE = ' ';
-const EMPTY_STRING = '';
-const EQUALS = '=';
-const DOUBLE_QUOTES = '"';
-const SLASH = '/';
-const VAN_GOGH_URL = 'https://micrio-cdn.vangoghmuseum.nl';
+const Value = {
+    Slash: "/",
+    Title: "title>",
+    Equals: "=",
+    Hyphen: "-",
+    Picture: "picture>",
+    EmptySpace: " ",
+    EmptyString: "",
+    DoubleQuotes: '"',
+    VanGoghUrl: "https://micrio-cdn.vangoghmuseum.nl",
+    TextHtmlResponse: "text/html",
+    ArrayBufferResponse: "arraybuffer"
+}
+
 var paintingTitle = '';
 var paintingId = '';
 var totalImages = 0;
@@ -15,30 +23,11 @@ var totalImages = 0;
 async function getPaintingProperties(url, column, row) {
     this.totalImages = getTotalImages(column, row);
     const response = await axios.get(url, {
-        responseType: 'text/html'
+        responseType: Value.TextHtmlResponse
     });
     let fullPageResponse = response.data;
-    let paintingFullTitle = fullPageResponse.substring(
-        fullPageResponse.indexOf('<title>') + 1,
-        fullPageResponse.lastIndexOf('</title>')
-    );
-    this.paintingTitle = paintingFullTitle.substring(
-        paintingFullTitle.indexOf('-') +1,
-        paintingFullTitle.lastIndexOf('-')
-    ).trim().replaceAll(" ", EMPTY_STRING);
-    let pictureTagContent = fullPageResponse.substring(
-        fullPageResponse.indexOf('<picture>') + 1,
-        fullPageResponse.lastIndexOf('</picture>')
-    )
-    let micrioUlr = new URL(
-        encodeURI(
-            pictureTagContent
-                .split(EQUALS)[1]
-                .split(EMPTY_SPACE)[0]
-                .replace(DOUBLE_QUOTES, EMPTY_STRING)
-        )
-    );
-    this.paintingId = micrioUlr.pathname.split(SLASH)[1];
+    this.paintingTitle = getPaintingTitle(fullPageResponse);
+    this.paintingId = getPaintingId(fullPageResponse);
     getVanGoghImage(
         this.paintingId,
         this.paintingTitle,
@@ -51,20 +40,53 @@ function getTotalImages(column, row) {
     return ((column + 1) * (row + 1)) - 1;
 }
 
+function getPaintingTitle(fullPageResponse) {
+    let paintingFullTitle = getSubstringItem(fullPageResponse, Value.Title);
+    let title = getSubstringItem(paintingFullTitle, Value.Hyphen);
+    return title.trim().replaceAll(Value.EmptySpace, Value.EmptyString);
+}
+
+function getPaintingId(fullPageResponse) {
+    let pictureTagContent = getSubstringItem(fullPageResponse, Value.Picture);
+    let urlString = getPaintingSliceUrl(pictureTagContent);
+    let sliceImagesUrl = new URL(encodeURI(urlString));
+    return sliceImagesUrl.pathname.split(Value.Slash)[1];
+}
+
+function getPaintingSliceUrl(pictureTagContent) {
+    return pictureTagContent
+        .split(Value.Equals)[1]
+        .split(Value.EmptySpace)[0]
+        .replace(Value.DoubleQuotes, Value.EmptyString);
+}
+
+function getSubstringItem(stringToSearch, itemToSearch) {
+    let searchedItem = stringToSearch.substring(
+        stringToSearch.indexOf(itemToSearch) + 1,
+        stringToSearch.lastIndexOf(itemToSearch)
+    );
+    return searchedItem
+}
+
 async function getVanGoghImage(paintingId, paintingTitle, totalColumn, totalRow) {
     var counter = 0;
     createDirectory(paintingTitle);
     for (let itemRow = 0; itemRow <= totalRow; itemRow++) {
         for (let itemColumn = 0; itemColumn <= totalColumn; itemColumn++) {
-            const IMAGE_URL = `${VAN_GOGH_URL}/${paintingId}/0/${itemColumn}-${itemRow}.jpg`;
-            const response = await axios.get(IMAGE_URL, {
-                responseType: 'arraybuffer'
-            });
+            const response = await requestItemImage(paintingId, itemColumn, itemRow);
             createImageFile(paintingTitle, paintingId, counter, response)
             counter = counter + 1
         }
     }
     createFinalImage(this.paintingTitle, this.totalImages, totalColumn);
+}
+
+async function requestItemImage(paintingId, itemColumn, itemRow) {
+    const IMAGE_URL = `${Value.VanGoghUrl}/${paintingId}/0/${itemColumn}-${itemRow}.jpg`;
+    const response = await axios.get(IMAGE_URL, {
+        responseType: Value.ArrayBufferResponse
+    });
+    return response;
 }
 
 function createDirectory(paintingTitle) {
