@@ -114,10 +114,17 @@ function createFinalImage(paintingTitle, images, columns) {
         if (err) {
             console.error("command not executed: ", err);
         }
-        console.log(out);
+        if (out) {
+            exec(`bash moveAndRemoveFiles.sh ${paintingTitle}`, (err, out) => {
+                if (err) {
+                    console.error("command not excecuted: ", err);
+                }
+                console.log(out)
+            });
+        }
     });
 }
 
 //getVanGoghImage("TZCqF", 5, 7)
 getPaintingProperties("https://www.vangoghmuseum.nl/en/collection/d0420V1962", 6, 5)
-//createFinalImage(3, 2);
+//createFinalImage("GateintheParisRamparts", 3, 2);
