@@ -43,7 +43,7 @@ function getTotalImages(column, row) {
 function getPaintingTitle(fullPageResponse) {
     let paintingFullTitle = getSubstringItem(fullPageResponse, Value.Title);
     let title = getSubstringItem(paintingFullTitle, Value.Hyphen);
-    return title.trim().replaceAll(Value.EmptySpace, Value.EmptyString);
+    return title.trim().replaceAll(Value.EmptySpace, Value.EmptyString).replaceAll("(", "-").replaceAll(")","");
 }
 
 function getPaintingId(fullPageResponse) {
@@ -126,5 +126,5 @@ function createFinalImage(paintingTitle, images, columns) {
 }
 
 //getVanGoghImage("TZCqF", 5, 7)
-getPaintingProperties("https://www.vangoghmuseum.nl/en/collection/d0420V1962", 6, 5)
+getPaintingProperties("https://www.vangoghmuseum.nl/en/collection/s0033V1962", 14, 9)
 //createFinalImage("GateintheParisRamparts", 3, 2);
